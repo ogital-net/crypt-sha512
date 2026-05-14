@@ -24,11 +24,6 @@ default; selecting zero or more than one is a compile error.
 | `backend-openssl` | [`openssl-sys`] | OpenSSL headers/libs (`libssl-dev` / `brew install openssl`) |
 | `backend-rust-crypto` | [`sha2`] + [`getrandom`] + [`subtle`] + [`zeroize`] | none (pure Rust) |
 
-```toml
-[dependencies]
-crypt-sha512 = { version = "0.1", default-features = false, features = ["backend-aws-lc"] }
-```
-
 The public API is identical regardless of backend; switching is a
 manifest-only change.
 
@@ -56,7 +51,7 @@ manifest-only change.
 
 ```toml
 [dependencies]
-crypt-sha512 = { version = "0.1", default-features = false, features = ["backend-aws-lc"] }
+crypt-sha512 = { version = "1.0.0", default-features = false, features = ["backend-aws-lc"] }
 ```
 
 ### Hash a new password

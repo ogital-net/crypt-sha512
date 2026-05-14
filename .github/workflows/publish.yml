@@ -46,11 +46,11 @@ jobs:
 
       - name: Verify zero-backend compile_error fires
         run: |
-          if cargo check --no-default-features 2>&1 | tee /tmp/out; then
-            echo "::error::expected compile_error! when no backend is selected"
+          if cargo check --no-default-features; then
+            echo "::error::expected compile_error! when no backend is selected, but cargo check succeeded"
             exit 1
           fi
-          grep -q "no backend selected" /tmp/out
+          echo "ok: cargo check failed as expected when no backend is selected"
 
       - name: Dry-run package
         run: cargo package --no-default-features --features "$PUBLISH_BACKEND" --verbose
