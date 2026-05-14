@@ -1,0 +1,48 @@
+[package]
+name = "crypt-sha512"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+description = "no_std SHA512-crypt ($6$) password hashing, ported from Ulrich Drepper's reference implementation. Pluggable crypto backend (aws-lc, BoringSSL, OpenSSL, or RustCrypto) selected by feature."
+license = "BSD-2-Clause"
+repository = "https://github.com/ogital-net/crypt-sha512"
+homepage = "https://github.com/ogital-net/crypt-sha512"
+documentation = "https://docs.rs/crypt-sha512"
+readme = "README.md"
+keywords = ["crypt", "sha512", "password", "hash", "no_std"]
+categories = ["cryptography", "authentication", "no-std"]
+include = [
+    "src/**/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+]
+
+[features]
+# No default backend: consumers MUST pick exactly one. Selecting zero or more
+# than one yields a compile_error! at the top of `lib.rs`.
+default = []
+backend-aws-lc = ["dep:aws-lc-sys"]
+backend-boring = ["dep:boring-sys"]
+backend-openssl = ["dep:openssl-sys"]
+backend-rust-crypto = [
+    "dep:sha2",
+    "dep:getrandom",
+    "dep:subtle",
+    "dep:zeroize",
+]
+
+[dependencies]
+aws-lc-sys = { version = "0.41", optional = true }
+boring-sys = { version = "5", optional = true }
+openssl-sys = { version = "0.9", optional = true }
+sha2 = { version = "0.11", default-features = false, features = ["zeroize"], optional = true }
+getrandom = { version = "0.4", optional = true }
+subtle = { version = "2", default-features = false, optional = true }
+zeroize = { version = "1", default-features = false, optional = true }
+
+[package.metadata.docs.rs]
+# Mutually exclusive features mean we can't use --all-features. Build docs
+# with the aws-lc backend (arbitrary choice; the public API is identical).
+features = ["backend-aws-lc"]
+rustdoc-args = ["--cfg", "docsrs"]

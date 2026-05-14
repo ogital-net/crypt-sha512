@@ -1,0 +1,61 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+  # crypt-sha512's `backend-*` features are mutually exclusive, so we cannot
+  # use `--all-features`. Pick one canonical backend for the publish gate;
+  # the per-backend test matrix in ci.yml validates the others on every push.
+  PUBLISH_BACKEND: backend-aws-lc
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install backend system dependencies
+        run: ./.github/scripts/install-backend-deps.sh "$PUBLISH_BACKEND" linux
+
+      - name: Verify tag matches Cargo.toml version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest="$(cargo metadata --no-deps --format-version 1 \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::Tag version ($tag) does not match Cargo.toml version ($manifest)"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: cargo test --no-default-features --features "$PUBLISH_BACKEND" --verbose
+
+      - name: Run doc tests
+        run: cargo test --doc --no-default-features --features "$PUBLISH_BACKEND"
+
+      - name: Verify zero-backend compile_error fires
+        run: |
+          if cargo check --no-default-features 2>&1 | tee /tmp/out; then
+            echo "::error::expected compile_error! when no backend is selected"
+            exit 1
+          fi
+          grep -q "no backend selected" /tmp/out
+
+      - name: Dry-run package
+        run: cargo package --no-default-features --features "$PUBLISH_BACKEND" --verbose
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --no-default-features --features "$PUBLISH_BACKEND" --verbose

@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+  RUST_BACKTRACE: 1
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  no-backend-error:
+    name: no-backend selection is a compile error
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build with no backend (must fail)
+        run: |
+          if cargo build --no-default-features 2>build.log; then
+            echo "ERROR: build succeeded with no backend selected" >&2
+            exit 1
+          fi
+          grep -q "no backend selected" build.log
+      - name: Build with two backends (must fail)
+        run: |
+          if cargo build --no-default-features \
+              --features "backend-aws-lc backend-rust-crypto" 2>build.log; then
+            echo "ERROR: build succeeded with two backends selected" >&2
+            exit 1
+          fi
+          grep -q "more than one backend" build.log
+
+  clippy:
+    name: clippy (${{ matrix.backend }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - backend-aws-lc
+          - backend-boring
+          - backend-openssl
+          - backend-rust-crypto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.backend }}
+      - name: Install backend system deps
+        run: ./.github/scripts/install-backend-deps.sh "${{ matrix.backend }}" linux
+      - run: cargo clippy --no-default-features --features ${{ matrix.backend }} --all-targets -- -D warnings
+
+  docs:
+    name: docs (warnings as errors)
+    runs-on: ubuntu-24.04
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --no-deps --no-default-features --features backend-aws-lc
+
+  test:
+    name: test (${{ matrix.os }} / ${{ matrix.rust }} / ${{ matrix.backend }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Stable on every (OS, backend) combination that the backend supports.
+        os: [ubuntu-24.04]
+        rust: [stable]
+        backend:
+          - backend-aws-lc
+          - backend-boring
+          - backend-openssl
+          - backend-rust-crypto
+        include:
+          # Spot-check the pure-Rust and aws-lc backends across all supported
+          # OS/arch combinations, where toolchain availability is easy.
+          - { os: ubuntu-24.04-arm, rust: stable, backend: backend-aws-lc }
+          - { os: ubuntu-24.04-arm, rust: stable, backend: backend-rust-crypto }
+          - { os: macos-15,         rust: stable, backend: backend-aws-lc }
+          - { os: macos-15,         rust: stable, backend: backend-rust-crypto }
+          - { os: macos-15-intel,   rust: stable, backend: backend-aws-lc }
+          - { os: macos-15-intel,   rust: stable, backend: backend-rust-crypto }
+          # MSRV check on a single (Linux x64, aws-lc) combination.
+          - { os: ubuntu-24.04, rust: "1.81", backend: backend-aws-lc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.rust }}-${{ matrix.backend }}
+      - name: Install backend system deps
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   PLATFORM=linux ;;
+            macOS)   PLATFORM=macos ;;
+            Windows) PLATFORM=windows ;;
+          esac
+          ./.github/scripts/install-backend-deps.sh "${{ matrix.backend }}" "$PLATFORM"
+      - name: Build
+        run: cargo build --no-default-features --features ${{ matrix.backend }} --all-targets --verbose
+      - name: Test
+        run: cargo test --no-default-features --features ${{ matrix.backend }} --verbose
+      - name: Doctests
+        if: matrix.rust == 'stable'
+        run: cargo test --doc --no-default-features --features ${{ matrix.backend }}
+
+  package:
+    name: cargo package (publish dry-run)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo package --no-verify --allow-dirty
+      - run: cargo publish --dry-run --no-default-features --features backend-aws-lc --allow-dirty
