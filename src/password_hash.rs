@@ -132,8 +132,7 @@ impl FromStr for Sha512CryptParams {
             return Ok(Self::DEFAULT);
         }
         let digits = s.strip_prefix("rounds=").ok_or(Error::ParamsInvalid)?;
-        let rounds =
-            atoi_u32(digits.as_bytes()).ok_or(Error::ParamInvalid { name: "rounds" })?;
+        let rounds = atoi_u32(digits.as_bytes()).ok_or(Error::ParamInvalid { name: "rounds" })?;
         Self::new(rounds)
     }
 }
@@ -328,8 +327,8 @@ impl PasswordVerifier<str> for Sha512Crypt {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::string::ToString;
     use crate::hash;
+    use alloc::string::ToString;
 
     #[test]
     fn hash_and_verify_round_trip() {
@@ -435,8 +434,7 @@ mod tests {
         // SHA-crypt truncates the salt at 16 characters. Some producers
         // store the untruncated salt; recomputation truncates identically,
         // so the digest still matches.
-        let base =
-            crate::hash_with_salt(Password::from("Hello world!"), b"$6$1234567890abcdef");
+        let base = crate::hash_with_salt(Password::from("Hello world!"), b"$6$1234567890abcdef");
         let extended = base.replace("$6$1234567890abcdef$", "$6$1234567890abcdefXYZ$");
         Sha512Crypt::default()
             .verify_password(b"Hello world!", extended.as_str())
@@ -476,7 +474,10 @@ mod tests {
 
         // Trait output verifies through the native API, for both default
         // and custom rounds.
-        for params in [Sha512CryptParams::DEFAULT, Sha512CryptParams::new(100_000).unwrap()] {
+        for params in [
+            Sha512CryptParams::DEFAULT,
+            Sha512CryptParams::new(100_000).unwrap(),
+        ] {
             let h = Sha512Crypt::new(params)
                 .hash_password_with_salt(b"hunter2", b"pepper")
                 .unwrap();
