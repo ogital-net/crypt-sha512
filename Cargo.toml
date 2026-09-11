@@ -1,6 +1,6 @@
 [package]
 name = "crypt-sha512"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 rust-version = "1.81"
 description = "no_std SHA512-crypt ($6$) password hashing, ported from Ulrich Drepper's reference implementation. Pluggable crypto backend (aws-lc, BoringSSL, OpenSSL, or RustCrypto) selected by feature."

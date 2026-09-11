@@ -51,7 +51,7 @@ manifest-only change.
 
 ```toml
 [dependencies]
-crypt-sha512 = { version = "1.0.0", default-features = false, features = ["backend-aws-lc"] }
+crypt-sha512 = { version = "1", default-features = false, features = ["backend-aws-lc"] }
 ```
 
 ### Hash a new password
