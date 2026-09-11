@@ -46,6 +46,9 @@ manifest-only change.
   constant-time `memcmp`.
 - **Cryptographically secure salts** — generated with the backend's CSPRNG.
 - **Unix `$6$` compatible** — output is bit-identical to glibc / libxcrypt.
+- **Optional [`password-hash`] trait integration** — the `password-hash`
+  cargo feature provides `Sha512Crypt`, implementing the RustCrypto
+  `PasswordHasher` / `CustomizedPasswordHasher` / `PasswordVerifier` traits
 
 ## Usage
 
@@ -99,6 +102,51 @@ let h = hash_with_salt(Password::from("password"), b"$6$rounds=10000$saltstring"
 assert!(h.starts_with("$6$rounds=10000$saltstring$"));
 ```
 
+## `password-hash` trait integration (optional)
+
+Enabling the `password-hash` feature (alongside exactly one backend)
+provides `Sha512Crypt`, an implementation of the RustCrypto
+[`password-hash`] crate's `PasswordHasher`, `CustomizedPasswordHasher`,
+and `PasswordVerifier` traits, producing and consuming `$6$` [Modular Crypt Format][`mcf`] strings:
+
+```toml
+[dependencies]
+crypt-sha512 = { version = "1.0.0", features = ["backend-aws-lc", "password-hash"] }
+```
+
+```rust
+#[cfg(feature = "password-hash")]
+{
+    use crypt_sha512::{PasswordHasher, PasswordVerifier, Sha512Crypt, Sha512CryptParams};
+
+    let hasher = Sha512Crypt::default(); // 5000 rounds
+    let hash = hasher.hash_password_with_salt(b"hunter2", b"raw salt bytes").unwrap();
+    assert!(hash.as_str().starts_with("$6$"));
+    hasher.verify_password(b"hunter2", hash.as_str()).unwrap();
+
+    // Custom work factor
+    let params = Sha512CryptParams::new(100_000).unwrap();
+    let hash = Sha512Crypt::new(params)
+        .hash_password_with_salt(b"hunter2", b"raw salt bytes")
+        .unwrap();
+    assert!(hash.as_str().starts_with("$6$rounds=100000$"));
+}
+```
+
+Notes:
+
+- Trait methods take the salt as raw bytes and encode it with the crypt
+  base64 alphabet before use (the same convention as the `sha-crypt`
+  crate). Use [`hash_with_salt`] if you need a literal salt string.
+- The traits' `hash_password()` method (random salt) becomes available
+  when the `password-hash` crate's `getrandom` feature is enabled; it
+  draws randomness from `getrandom` directly, not from the selected
+  backend's CSPRNG.
+- Enabling this feature raises the effective MSRV to Rust 1.85.
+
+[`password-hash`]: https://crates.io/crates/password-hash
+[`mcf`]: https://crates.io/crates/mcf
+
 ## The `Password` type
 
 `Password` is the only way to feed plaintext into this crate's hashing
@@ -129,7 +177,8 @@ $6$[rounds=N$]salt$digest
 
 ## MSRV
 
-Rust **1.81**.
+Rust **1.81**. The optional `password-hash` feature requires Rust **1.85**
+(the MSRV of the `password-hash` and `mcf` crates).
 
 ## License
 

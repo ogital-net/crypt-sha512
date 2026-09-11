@@ -66,6 +66,20 @@ use crate::backend as crypto;
 ))]
 use crate::backend::Sha512Context;
 
+// --- Optional `password-hash` trait integration --------------------------
+
+#[cfg(feature = "password-hash")]
+mod password_hash;
+
+#[cfg(feature = "password-hash")]
+pub use self::password_hash::{Sha512Crypt, Sha512CryptParams};
+
+#[cfg(feature = "password-hash")]
+pub use ::password_hash::{CustomizedPasswordHasher, PasswordHasher, PasswordVerifier};
+
+#[cfg(feature = "password-hash")]
+pub use ::mcf;
+
 const SHA512_SALT_PREFIX_STR: &str = "$6$";
 const SHA512_SALT_PREFIX: &[u8] = SHA512_SALT_PREFIX_STR.as_bytes();
 const SHA512_ROUNDS_PREFIX: &[u8] = b"rounds=";
@@ -247,6 +261,28 @@ macro_rules! b64_from_24bit {
             w >>= 6;
         }
     }};
+}
+
+/// Encode raw bytes with the crypt base64 alphabet, without padding.
+///
+/// This is the sequential form of the digest encoding in [`crypt_inner`]:
+/// each 3-byte group maps to 4 characters taken from the low bits of the
+/// 24-bit group first (matching Drepper's `b64_from_24bit`), and a trailing
+/// partial group of 1 or 2 bytes maps to 2 or 3 characters. The result is
+/// identical to base64ct's `Base64ShaCrypt` encoding.
+///
+/// Used by the `password-hash` integration to embed arbitrary salt bytes in
+/// the MCF hash string.
+#[cfg(feature = "password-hash")]
+pub(crate) fn encode_crypt_base64(input: &[u8]) -> Vec<u8> {
+    let mut output = Vec::with_capacity(input.len().div_ceil(3) * 4);
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0];
+        let b1 = chunk.get(1).copied().unwrap_or(0);
+        let b2 = chunk.get(2).copied().unwrap_or(0);
+        b64_from_24bit!(b2, b1, b0, chunk.len() + 1, &mut output);
+    }
+    output
 }
 
 /// Compute a SHA512-crypt (`$6$`) hash with an explicit, caller-provided salt.

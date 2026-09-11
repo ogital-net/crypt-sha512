@@ -31,6 +31,8 @@ backend-rust-crypto = [
     "dep:subtle",
     "dep:zeroize",
 ]
+# Optional integration with the RustCrypto `password-hash` trait
+password-hash = ["dep:password-hash", "dep:mcf"]
 
 [dependencies]
 # Only long-frozen OpenSSL-compat FFI is used (SHA512_Init/Update/Final,
@@ -45,8 +47,13 @@ getrandom = { version = "0.4", optional = true }
 subtle = { version = "2", default-features = false, optional = true }
 zeroize = { version = "1", default-features = false, optional = true }
 
+# Optional `password-hash` feature: RustCrypto password hashing traits.
+# Pure Rust and no_std; require Rust 1.85.
+password-hash = { version = "0.6", optional = true, default-features = false }
+mcf = { version = "0.6", optional = true, default-features = false, features = ["alloc"] }
+
 [package.metadata.docs.rs]
 # Mutually exclusive features mean we can't use --all-features. Build docs
 # with the aws-lc backend (arbitrary choice; the public API is identical).
-features = ["backend-aws-lc"]
+features = ["backend-aws-lc", "password-hash"]
 rustdoc-args = ["--cfg", "docsrs"]
