@@ -67,7 +67,7 @@ jobs:
           key: ${{ matrix.backend }}
       - name: Install backend system deps
         run: ./.github/scripts/install-backend-deps.sh "${{ matrix.backend }}" linux
-      - run: cargo clippy --no-default-features --features ${{ matrix.backend }} --all-targets -- -D warnings
+      - run: cargo clippy --locked --no-default-features --features ${{ matrix.backend }} --all-targets -- -D warnings
 
   docs:
     name: docs (warnings as errors)
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo doc --no-deps --no-default-features --features backend-aws-lc
+      - run: cargo doc --locked --no-deps --no-default-features --features backend-aws-lc
 
   test:
     name: test (${{ matrix.os }} / ${{ matrix.rust }} / ${{ matrix.backend }})
@@ -103,7 +103,13 @@ jobs:
           - { os: macos-15,         rust: stable, backend: backend-rust-crypto }
           - { os: macos-15-intel,   rust: stable, backend: backend-aws-lc }
           - { os: macos-15-intel,   rust: stable, backend: backend-rust-crypto }
-          # MSRV check on a single (Linux x64, aws-lc) combination.
+          # MSRV check on a single (Linux x64, aws-lc) combination. aws-lc is
+          # the only backend whose entire dependency tree is compatible with
+          # our MSRV: the rust-crypto backend's deps (sha2 0.11, getrandom 0.4)
+          # require rustc 1.85, and boring-sys 5.x requires 1.85. The committed
+          # Cargo.lock pins the MSRV-clean transitive versions (consumed via
+          # --locked) so this job does not silently float to an incompatible
+          # release.
           - { os: ubuntu-24.04, rust: "1.81", backend: backend-aws-lc }
     steps:
       - uses: actions/checkout@v4
@@ -123,12 +129,12 @@ jobs:
           esac
           ./.github/scripts/install-backend-deps.sh "${{ matrix.backend }}" "$PLATFORM"
       - name: Build
-        run: cargo build --no-default-features --features ${{ matrix.backend }} --all-targets --verbose
+        run: cargo build --locked --no-default-features --features ${{ matrix.backend }} --all-targets --verbose
       - name: Test
-        run: cargo test --no-default-features --features ${{ matrix.backend }} --verbose
+        run: cargo test --locked --no-default-features --features ${{ matrix.backend }} --verbose
       - name: Doctests
         if: matrix.rust == 'stable'
-        run: cargo test --doc --no-default-features --features ${{ matrix.backend }}
+        run: cargo test --locked --doc --no-default-features --features ${{ matrix.backend }}
 
   package:
     name: cargo package (publish dry-run)
@@ -137,5 +143,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo package --no-verify --allow-dirty
-      - run: cargo publish --dry-run --no-default-features --features backend-aws-lc --allow-dirty
+      - run: cargo package --locked --no-verify --allow-dirty
+      - run: cargo publish --locked --dry-run --no-default-features --features backend-aws-lc --allow-dirty
