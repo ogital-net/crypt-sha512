@@ -97,5 +97,5 @@ fn verify_openssl_cleanse_in_assembly() {
         total_cleanse_calls
     );
 
-    println!("\n✓ OPENSSL_cleanse is present and not optimized out!");
+    println!("\n[OK] OPENSSL_cleanse is present and not optimized out!");
 }

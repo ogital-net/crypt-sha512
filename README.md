@@ -4,8 +4,8 @@ A `no_std`-compatible Rust implementation of the SHA512-crypt password
 hashing algorithm (`$6$` Unix crypt format), ported from
 [Ulrich Drepper's reference C implementation][drepper].
 
-The four cryptographic primitives this crate needs — SHA-512, a CSPRNG, a
-constant-time comparison, and a non-elidable memory wipe — are delegated to
+The four cryptographic primitives this crate needs -- SHA-512, a CSPRNG, a
+constant-time comparison, and a non-elidable memory wipe -- are delegated to
 a backend selected at build time via cargo features. This lets the crate
 slot into projects that have already standardized on a particular crypto
 stack without dragging in a second one.
@@ -37,16 +37,16 @@ manifest-only change.
 
 ## Features
 
-- **`no_std`-compatible** — only requires `alloc`.
-- **Auto-zeroizing input type** — passwords are passed as a [`Password`]
+- **`no_std`-compatible** -- only requires `alloc`.
+- **Auto-zeroizing input type** -- passwords are passed as a [`Password`]
   newtype whose `Drop` impl wipes the backing buffer with the backend's
   non-elidable zeroing primitive (`OPENSSL_cleanse` for the FFI backends,
   `zeroize::Zeroize` for `backend-rust-crypto`).
-- **Timing-attack resistant** — verification compares with the backend's
+- **Timing-attack resistant** -- verification compares with the backend's
   constant-time `memcmp`.
-- **Cryptographically secure salts** — generated with the backend's CSPRNG.
-- **Unix `$6$` compatible** — output is bit-identical to glibc / libxcrypt.
-- **Optional [`password-hash`] trait integration** — the `password-hash`
+- **Cryptographically secure salts** -- generated with the backend's CSPRNG.
+- **Unix `$6$` compatible** -- output is bit-identical to glibc / libxcrypt.
+- **Optional [`password-hash`] trait integration** -- the `password-hash`
   cargo feature provides `Sha512Crypt`, implementing the RustCrypto
   `PasswordHasher` / `CustomizedPasswordHasher` / `PasswordVerifier` traits
 
@@ -85,9 +85,9 @@ assert_eq!(verify(Password::from("anything"), "not a hash"), Err(InvalidHash));
 
 `verify` distinguishes three outcomes:
 
-- `Ok(true)` — the hash parses and the password matches.
-- `Ok(false)` — the hash parses and the password does **not** match.
-- `Err(InvalidHash)` — the hash string is malformed; no comparison was
+- `Ok(true)` -- the hash parses and the password matches.
+- `Ok(false)` -- the hash parses and the password does **not** match.
+- `Err(InvalidHash)` -- the hash string is malformed; no comparison was
   performed. Useful for handling multiple hash types or detecting data corruption
   separately from authentication failures.
 
@@ -111,7 +111,7 @@ and `PasswordVerifier` traits, producing and consuming `$6$` [Modular Crypt Form
 
 ```toml
 [dependencies]
-crypt-sha512 = { version = "1.0.0", features = ["backend-aws-lc", "password-hash"] }
+crypt-sha512 = { version = "1", features = ["backend-aws-lc", "password-hash"] }
 ```
 
 ```rust
@@ -158,7 +158,7 @@ functions. It deliberately:
 - **does not** implement `Display`, and its `Debug` impl elides the contents,
   so secrets can't accidentally land in logs;
 - zeroes its buffer with the active backend's non-elidable zeroing primitive
-  on drop — including on panic.
+  on drop -- including on panic.
 
 Pass it by value into `hash`, `hash_with_salt`, or `verify`; the function
 takes ownership and the buffer is wiped before the call returns.
@@ -169,11 +169,11 @@ takes ownership and the buffer is wiped before the call returns.
 $6$[rounds=N$]salt$digest
 ```
 
-- `$6$` — SHA512-crypt identifier.
-- `rounds=N$` — optional; default is 5000. Values are clamped into
+- `$6$` -- SHA512-crypt identifier.
+- `rounds=N$` -- optional; default is 5000. Values are clamped into
   `[1000, 999_999_999]` per the SHA-crypt spec.
-- `salt` — up to 16 bytes from the crypt base64 alphabet.
-- `digest` — 86 bytes, crypt base64.
+- `salt` -- up to 16 bytes from the crypt base64 alphabet.
+- `digest` -- 86 bytes, crypt base64.
 
 ## MSRV
 

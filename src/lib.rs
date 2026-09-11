@@ -149,7 +149,7 @@ impl From<String> for Password {
 
 impl From<&str> for Password {
     /// Copy the string slice into a new `Password`. The copy will be zeroed on
-    /// drop, but the caller's original `&str` is unaffected — prefer
+    /// drop, but the caller's original `&str` is unaffected -- prefer
     /// [`Password::from(String)`](#impl-From<String>-for-Password) when you
     /// own the buffer.
     #[inline]
@@ -293,12 +293,12 @@ pub(crate) fn encode_crypt_base64(input: &[u8]) -> Vec<u8> {
 ///
 /// # Arguments
 ///
-/// * `password` — Password to hash. The backing buffer is zeroed before this
+/// * `password` -- Password to hash. The backing buffer is zeroed before this
 ///   function returns (and on panic) thanks to [`Password`]'s `Drop`.
-/// * `salt` — Salt specification. Accepted forms:
-///   - `b"saltstring"` — bare salt, uses default 5000 rounds
-///   - `b"$6$saltstring"` — with the `$6$` prefix
-///   - `b"$6$rounds=10000$saltstring"` — with explicit rounds
+/// * `salt` -- Salt specification. Accepted forms:
+///   - `b"saltstring"` -- bare salt, uses default 5000 rounds
+///   - `b"$6$saltstring"` -- with the `$6$` prefix
+///   - `b"$6$rounds=10000$saltstring"` -- with explicit rounds
 ///
 ///   Salt is truncated at the first `$` or at 16 bytes, whichever comes first.
 ///   Rounds are silently clamped to the range `[1000, 999_999_999]` as
@@ -530,8 +530,8 @@ fn crypt_inner(key_bytes: &mut [u8], salt: &[u8]) -> String {
 ///
 /// # Arguments
 ///
-/// * `password` — Password to hash. Its buffer is zeroed before return.
-/// * `rounds` — Optional iteration count:
+/// * `password` -- Password to hash. Its buffer is zeroed before return.
+/// * `rounds` -- Optional iteration count:
 ///   - `None` uses the SHA-crypt default of 5000 rounds and omits the
 ///     `rounds=` segment from the output.
 ///   - `Some(n)` records `rounds=n$` in the output, with `n` clamped into
@@ -599,7 +599,7 @@ pub fn hash(password: Password, rounds: Option<u32>) -> String {
 }
 
 /// Error returned by [`verify`] when the supplied hash string is not a
-/// well-formed SHA512-crypt (`$6$…$…`) value.
+/// well-formed SHA512-crypt (`$6$...$...`) value.
 ///
 /// This is distinct from a simple password mismatch: a mismatch is reported
 /// as `Ok(false)`, while a malformed hash is reported as `Err(InvalidHash)`.
@@ -609,7 +609,7 @@ pub fn hash(password: Password, rounds: Option<u32>) -> String {
 /// holding a mix of `$1$` MD5-crypt, `$2y$` bcrypt, `$5$` SHA256-crypt,
 /// and `$6$` SHA512-crypt entries, or rows migrated from another system).
 /// `Err(InvalidHash)` lets the caller route the request to a different
-/// verifier — or surface data corruption — rather than treating a
+/// verifier -- or surface data corruption -- rather than treating a
 /// non-`$6$` hash as a failed authentication attempt.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InvalidHash;
@@ -631,16 +631,16 @@ impl core::error::Error for InvalidHash {}
 ///
 /// # Arguments
 ///
-/// * `password` — Password to check. Its buffer is zeroed before return,
+/// * `password` -- Password to check. Its buffer is zeroed before return,
 ///   regardless of which branch is taken (match, mismatch, or parse error).
-/// * `hash` — Expected hash string in the format
+/// * `hash` -- Expected hash string in the format
 ///   `$6$[rounds=N$]salt$encoded_digest`.
 ///
 /// # Returns
 ///
-/// * `Ok(true)` — `hash` is well-formed and `password` matches it.
-/// * `Ok(false)` — `hash` is well-formed and `password` does **not** match.
-/// * `Err(InvalidHash)` — `hash` is not a well-formed `$6$…$…` string. No
+/// * `Ok(true)` -- `hash` is well-formed and `password` matches it.
+/// * `Ok(false)` -- `hash` is well-formed and `password` does **not** match.
+/// * `Err(InvalidHash)` -- `hash` is not a well-formed `$6$...$...` string. No
 ///   password comparison was performed.
 ///
 /// # Errors
@@ -942,7 +942,7 @@ mod tests {
         // Direct check on the public byte-vec constructor:
         let bytes = alloc::vec![0xAAu8; 32];
         let p = Password::from_bytes(bytes);
-        // into_bytes does NOT zero (used internally) — sanity check it returns the data.
+        // into_bytes does NOT zero (used internally) -- sanity check it returns the data.
         let recovered = p.into_bytes();
         assert!(recovered.iter().all(|&b| b == 0xAA));
     }

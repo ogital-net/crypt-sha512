@@ -16,7 +16,7 @@
 //!
 //! - The traits pass salts around as raw bytes, which cannot necessarily be
 //!   embedded in an MCF string. Salt bytes are therefore encoded with the
-//!   crypt base64 alphabet before use — the same convention used by
+//!   crypt base64 alphabet before use -- the same convention used by
 //!   RustCrypto's `sha-crypt` crate. If you need a *literal* salt string,
 //!   use [`hash_with_salt`][crate::hash_with_salt] directly.
 //! - An empty salt is rejected with [`Error::SaltInvalid`].
