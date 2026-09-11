@@ -33,8 +33,12 @@ backend-rust-crypto = [
 ]
 
 [dependencies]
-aws-lc-sys = { version = "0.41", optional = true }
-boring-sys = { version = "5", optional = true }
+# Only long-frozen OpenSSL-compat FFI is used (SHA512_Init/Update/Final,
+# CRYPTO_memcmp, RAND_bytes, OPENSSL_cleanse), so ranges stay wide. Lower
+# bounds are the oldest releases that still build with a modern toolchain
+# (verified by running the test suite against each line).
+aws-lc-sys = { version = ">=0.15, <2", optional = true }
+boring-sys = { version = ">=3, <7", optional = true }
 openssl-sys = { version = "0.9", optional = true }
 sha2 = { version = "0.11", default-features = false, features = ["zeroize"], optional = true }
 getrandom = { version = "0.4", optional = true }
